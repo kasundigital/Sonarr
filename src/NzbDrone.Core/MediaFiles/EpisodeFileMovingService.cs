@@ -20,6 +20,7 @@ namespace NzbDrone.Core.MediaFiles
     public interface IMoveEpisodeFiles
     {
         EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series);
+        EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series, NamingConfig namingConfig);
         EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode);
         EpisodeFile CopyEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode);
     }
@@ -65,13 +66,18 @@ namespace NzbDrone.Core.MediaFiles
 
         public EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series)
         {
-            var episodes = _episodeService.GetEpisodesByFileId(episodeFile.Id);
-            return MoveEpisodeFile(episodeFile, series, episodes);
+            return MoveEpisodeFile(episodeFile, series, null);
         }
 
-        private EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series, List<Episode> episodes)
+        public EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series, NamingConfig namingConfig)
         {
-            var filePath = _buildFileNames.BuildFilePath(episodes, series, episodeFile, Path.GetExtension(episodeFile.RelativePath));
+            var episodes = _episodeService.GetEpisodesByFileId(episodeFile.Id);
+            return MoveEpisodeFile(episodeFile, series, episodes, namingConfig);
+        }
+
+        private EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series, List<Episode> episodes, NamingConfig namingConfig = null)
+        {
+            var filePath = _buildFileNames.BuildFilePath(episodes, series, episodeFile, Path.GetExtension(episodeFile.RelativePath), namingConfig);
 
             var firstEpisode = episodes.First();
             EnsureEpisodeFolder(episodeFile, series, firstEpisode.SeasonNumber, firstEpisode.AirDateUtc?.Year, filePath);
@@ -139,7 +145,7 @@ namespace NzbDrone.Core.MediaFiles
                 {
                     try
                     {
-                        MoveEpisodeFile(episodeFile, series, episodeFile.Episodes);
+                        MoveEpisodeFile(episodeFile, series, episodeFile.Episodes, null);
                     }
                     catch (SameFilenameException)
                     {
