@@ -5,9 +5,11 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.TPL;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.ThingiProvider.Status;
 
 namespace NzbDrone.Core.Download.TrackedDownloads
 {
@@ -94,6 +96,13 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 downloadClientItems = downloadClient.GetItems().ToList();
 
                 _downloadClientStatusService.RecordSuccess(downloadClient.Definition.Id);
+            }
+            catch (DownloadClientAuthenticationException ex)
+            {
+                // TODO: Stop tracking items for the offline client
+
+                _downloadClientStatusService.RecordFailure(downloadClient.Definition.Id, ProviderFailureReason.Authentication);
+                _logger.Warn(ex, "Unable to authenticate with " + downloadClient.Definition.Name);
             }
             catch (Exception ex)
             {

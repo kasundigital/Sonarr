@@ -41,7 +41,8 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 return new HealthCheck(GetType(),
                     HealthCheckResult.Error,
                     HealthCheckReason.NotificationStatusAll,
-                    _localizationService.GetLocalizedString("NotificationStatusAllClientHealthCheckMessage"),
+                    _localizationService.GetLocalizedString("NotificationStatusAllClientHealthCheckMessage") + ": " +
+                    string.Join(", ", backOffProviders.Select(v => ProviderStatusHealthCheckMessage.Format(v.Provider.Definition.Name, v.Status, _providerStatusService.GetFailureReason(v.Provider.Definition.Id)))),
                     "#notifications-are-unavailable-due-to-failures");
             }
 
@@ -50,7 +51,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 HealthCheckReason.NotificationStatusSingle,
                 _localizationService.GetLocalizedString("NotificationStatusSingleClientHealthCheckMessage", new Dictionary<string, object>
                 {
-                    { "notificationNames", string.Join(", ", backOffProviders.Select(v => v.Provider.Definition.Name)) }
+                    { "notificationNames", string.Join(", ", backOffProviders.Select(v => ProviderStatusHealthCheckMessage.Format(v.Provider.Definition.Name, v.Status, _providerStatusService.GetFailureReason(v.Provider.Definition.Id)))) }
                 }),
                 "#notifications-are-unavailable-due-to-failures");
         }

@@ -41,7 +41,8 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 return new HealthCheck(GetType(),
                     HealthCheckResult.Error,
                     HealthCheckReason.ImportListStatusAllUnavailable,
-                    _localizationService.GetLocalizedString("ImportListStatusAllUnavailableHealthCheckMessage"),
+                    _localizationService.GetLocalizedString("ImportListStatusAllUnavailableHealthCheckMessage") + ": " +
+                    string.Join(", ", backOffProviders.Select(v => ProviderStatusHealthCheckMessage.Format(v.ImportList.Definition.Name, v.Status, _providerStatusService.GetFailureReason(v.ImportList.Definition.Id)))),
                     "#import-lists-are-unavailable-due-to-failures");
             }
 
@@ -50,7 +51,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 HealthCheckReason.ImportListStatusUnavailable,
                 _localizationService.GetLocalizedString("ImportListStatusUnavailableHealthCheckMessage", new Dictionary<string, object>
                 {
-                    { "importListNames", string.Join(", ", backOffProviders.Select(v => v.ImportList.Definition.Name)) }
+                    { "importListNames", string.Join(", ", backOffProviders.Select(v => ProviderStatusHealthCheckMessage.Format(v.ImportList.Definition.Name, v.Status, _providerStatusService.GetFailureReason(v.ImportList.Definition.Id)))) }
                 }),
                 "#import-lists-are-unavailable-due-to-failures");
         }

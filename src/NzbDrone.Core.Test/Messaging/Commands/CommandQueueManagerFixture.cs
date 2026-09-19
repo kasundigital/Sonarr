@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Test.Messaging.Commands
         }
 
         [Test]
-        public void should_not_remove_commands_for_five_minutes_after_they_end()
+        public void should_not_remove_commands_for_thirty_minutes_after_they_end()
         {
             var command = Subject.Push<RefreshMonitoredDownloadsCommand>(new RefreshMonitoredDownloadsCommand());
 
@@ -49,6 +49,7 @@ namespace NzbDrone.Core.Test.Messaging.Commands
 
             Subject.Start(command);
             Subject.Complete(command, "All done");
+            command.EndedAt = DateTime.UtcNow.AddMinutes(-29);
             Subject.CleanCommands();
 
             Subject.Get(command.Id).Should().NotBeNull();

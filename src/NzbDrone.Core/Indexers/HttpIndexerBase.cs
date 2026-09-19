@@ -15,6 +15,7 @@ using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.ThingiProvider.Status;
 
 namespace NzbDrone.Core.Indexers
 {
@@ -251,7 +252,15 @@ namespace NzbDrone.Core.Indexers
             }
             catch (HttpException ex)
             {
-                _indexerStatusService.RecordFailure(Definition.Id);
+                if (ex.Response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
+                {
+                    _indexerStatusService.RecordFailure(Definition.Id, ProviderFailureReason.Authentication);
+                }
+                else
+                {
+                    _indexerStatusService.RecordFailure(Definition.Id);
+                }
+
                 if (ex.Response.HasHttpServerError)
                 {
                     _logger.Warn("Unable to connect to {0} at [{1}]. Indexer's server is unavailable. Try again later. {2}", this, url, ex.Message);
@@ -270,7 +279,7 @@ namespace NzbDrone.Core.Indexers
             }
             catch (ApiKeyException)
             {
-                _indexerStatusService.RecordFailure(Definition.Id);
+                _indexerStatusService.RecordFailure(Definition.Id, ProviderFailureReason.Authentication);
                 _logger.Warn("Invalid API Key for {0} {1}", this, url);
             }
             catch (CloudFlareCaptchaException ex)
@@ -288,7 +297,7 @@ namespace NzbDrone.Core.Indexers
             }
             catch (TaskCanceledException ex)
             {
-                _indexerStatusService.RecordFailure(Definition.Id);
+                _indexerStatusService.RecordConnectionFailure(Definition.Id);
                 _logger.Warn(ex, "Unable to connect to indexer, possibly due to a timeout. {0}", url);
             }
             catch (IndexerException ex)

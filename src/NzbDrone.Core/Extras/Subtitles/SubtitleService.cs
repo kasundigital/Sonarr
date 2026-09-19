@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
@@ -19,6 +20,9 @@ namespace NzbDrone.Core.Extras.Subtitles
 {
     public class SubtitleService : ExtraFileManager<SubtitleFile>
     {
+        private static readonly Regex EpisodeLikeTitleRegex = new Regex(
+            @"(?:\bS\d{1,3}E\d{1,4}\b|\b\d{4}[-.]\d{2}[-.]\d{2}\b|\b\d{1,2}x\d{1,4}\b)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private readonly IDiskProvider _diskProvider;
         private readonly IDetectSample _detectSample;
         private readonly ISubtitleFileService _subtitleFileService;
@@ -92,7 +96,13 @@ namespace NzbDrone.Core.Extras.Subtitles
                             subtitleFile.Copy = ++copy;
                         }
 
-                        var suffix = GetSuffix(subtitleFile.Language, subtitleFile.Copy, subtitleFile.LanguageTags, multipleCopies, subtitleFile.Title);
+                        var title = GetRenameTitle(subtitleFile.Title);
+                        var suffix = GetSuffix(subtitleFile.Language, subtitleFile.Copy, subtitleFile.LanguageTags, multipleCopies, title);
+
+                        if (title == null && subtitleFile.Title != null)
+                        {
+                            subtitleFile.Title = null;
+                        }
 
                         movedFiles.AddIfNotNull(MoveFile(series, episodeFile, subtitleFile, suffix));
                     }
@@ -140,7 +150,7 @@ namespace NzbDrone.Core.Extras.Subtitles
                         continue;
                     }
 
-                    if (fileEpisodeInfo.SeasonNumber == localEpisode.FileEpisodeInfo.SeasonNumber &&
+                    if (fileEpisodeInfo.SeasonNumbers.SequenceEqual(localEpisode.FileEpisodeInfo.SeasonNumbers) &&
                         fileEpisodeInfo.EpisodeNumbers.SequenceEqual(localEpisode.FileEpisodeInfo.EpisodeNumbers))
                     {
                         matchingFiles.Add(file);
@@ -236,6 +246,24 @@ namespace NzbDrone.Core.Extras.Subtitles
             }
 
             return importedFiles;
+        }
+
+        private string GetRenameTitle(string title)
+        {
+            if (title.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+
+            // Subtitle parsers can mistake the original release/episode filename for a subtitle
+            // title (for example "... S02E18 ..._track10"). Do not carry that source filename
+            // into the renamed subtitle. Keep short, intentional subtitle labels intact.
+            if (title.Length > 40 || EpisodeLikeTitleRegex.IsMatch(title))
+            {
+                return null;
+            }
+
+            return title;
         }
 
         private string GetSuffix(Language language, int copy, List<string> languageTags, bool multipleCopies = false, string title = null)

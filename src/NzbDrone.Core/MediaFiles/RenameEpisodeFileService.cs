@@ -32,6 +32,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IEventAggregator _eventAggregator;
         private readonly IEpisodeService _episodeService;
         private readonly IBuildFileNames _filenameBuilder;
+        private readonly INamingConfigService _namingConfigService;
         private readonly IDiskProvider _diskProvider;
         private readonly Logger _logger;
 
@@ -41,6 +42,7 @@ namespace NzbDrone.Core.MediaFiles
                                         IEventAggregator eventAggregator,
                                         IEpisodeService episodeService,
                                         IBuildFileNames filenameBuilder,
+                                        INamingConfigService namingConfigService,
                                         IDiskProvider diskProvider,
                                         Logger logger)
         {
@@ -50,6 +52,7 @@ namespace NzbDrone.Core.MediaFiles
             _eventAggregator = eventAggregator;
             _episodeService = episodeService;
             _filenameBuilder = filenameBuilder;
+            _namingConfigService = namingConfigService;
             _diskProvider = diskProvider;
             _logger = logger;
         }
@@ -95,8 +98,31 @@ namespace NzbDrone.Core.MediaFiles
                 .ToList();
         }
 
+        private NamingConfig GetManualNamingConfig()
+        {
+            var current = _namingConfigService.GetConfig();
+
+            return new NamingConfig
+            {
+                Id = current.Id,
+                RenameEpisodes = true,
+                ReplaceIllegalCharacters = current.ReplaceIllegalCharacters,
+                ColonReplacementFormat = current.ColonReplacementFormat,
+                CustomColonReplacementFormat = current.CustomColonReplacementFormat,
+                MultiEpisodeStyle = current.MultiEpisodeStyle,
+                StandardEpisodeFormat = current.StandardEpisodeFormat,
+                DailyEpisodeFormat = current.DailyEpisodeFormat,
+                AnimeEpisodeFormat = current.AnimeEpisodeFormat,
+                SeriesFolderFormat = current.SeriesFolderFormat,
+                SeasonFolderFormat = current.SeasonFolderFormat,
+                SpecialsFolderFormat = current.SpecialsFolderFormat
+            };
+        }
+
         private IEnumerable<RenameEpisodeFilePreview> GetPreviews(Series series, List<Episode> episodes, List<EpisodeFile> files)
         {
+            var namingConfig = GetManualNamingConfig();
+
             foreach (var f in files)
             {
                 var file = f;
@@ -110,7 +136,7 @@ namespace NzbDrone.Core.MediaFiles
                 }
 
                 var seasonNumber = episodesInFile.First().SeasonNumber;
-                var newPath = _filenameBuilder.BuildFilePath(episodesInFile, series, file, Path.GetExtension(episodeFilePath));
+                var newPath = _filenameBuilder.BuildFilePath(episodesInFile, series, file, Path.GetExtension(episodeFilePath), namingConfig);
 
                 if (!episodeFilePath.PathEquals(newPath, StringComparison.Ordinal))
                 {
@@ -130,16 +156,69 @@ namespace NzbDrone.Core.MediaFiles
         private List<RenamedEpisodeFile> RenameFiles(List<EpisodeFile> episodeFiles, Series series)
         {
             var renamed = new List<RenamedEpisodeFile>();
+            var namingConfig = GetManualNamingConfig();
+            var previousRelativePaths = episodeFiles.ToDictionary(f => f.Id, f => f.RelativePath);
+            var previousPaths = episodeFiles.ToDictionary(f => f.Id, f => f.Path ?? Path.Combine(series.Path, f.RelativePath));
+            var destinationPaths = episodeFiles.ToDictionary(f => f.Id, f =>
+            {
+                var episodes = _episodeService.GetEpisodesByFileId(f.Id);
+
+                if (episodes == null || episodes.Empty())
+                {
+                    return previousPaths[f.Id];
+                }
+
+                return _filenameBuilder.BuildFilePath(episodes, series, f, Path.GetExtension(previousPaths[f.Id]), namingConfig);
+            });
+
+            // When episode assignments are changed, one file can be renamed to a path that is
+            // still occupied by another selected file. Stage those sources to unique temporary
+            // names first so cyclic renames (E01 -> E02 -> E03 -> E01) cannot overwrite data.
+            foreach (var episodeFile in episodeFiles)
+            {
+                var sourcePath = previousPaths[episodeFile.Id];
+                var destinationPath = destinationPaths[episodeFile.Id];
+                var destinationIsAnotherSource = previousPaths.Any(p =>
+                    p.Key != episodeFile.Id &&
+                    p.Value.PathEquals(destinationPath, StringComparison.Ordinal));
+                var sourceIsAnotherDestination = destinationPaths.Any(p =>
+                    p.Key != episodeFile.Id &&
+                    p.Value.PathEquals(sourcePath, StringComparison.Ordinal));
+
+                if ((!destinationIsAnotherSource && !sourceIsAnotherDestination) ||
+                    sourcePath.PathEquals(destinationPath, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var directory = Path.GetDirectoryName(sourcePath);
+                var extension = Path.GetExtension(sourcePath);
+                string temporaryPath;
+
+                do
+                {
+                    temporaryPath = Path.Combine(directory, $".sonarr-rename-{episodeFile.Id}-{Guid.NewGuid():N}{extension}");
+                }
+                while (_diskProvider.FileExists(temporaryPath));
+
+                _logger.Debug("Staging episode file before collision-safe rename: {0} to {1}", sourcePath, temporaryPath);
+                _diskProvider.MoveFile(sourcePath, temporaryPath);
+
+                episodeFile.RelativePath = series.Path.GetRelativePath(temporaryPath);
+                episodeFile.Path = temporaryPath;
+                _mediaFileService.Update(episodeFile);
+            }
 
             foreach (var episodeFile in episodeFiles)
             {
-                var previousRelativePath = episodeFile.RelativePath;
-                var previousPath = Path.Combine(series.Path, episodeFile.RelativePath);
+                var previousRelativePath = previousRelativePaths[episodeFile.Id];
+                var previousPath = previousPaths[episodeFile.Id];
 
                 try
                 {
                     _logger.Debug("Renaming episode file: {0}", episodeFile);
-                    _episodeFileMover.MoveEpisodeFile(episodeFile, series);
+                    _episodeFileMover.MoveEpisodeFile(episodeFile, series, namingConfig);
+                    episodeFile.Path = null;
 
                     _mediaFileService.Update(episodeFile);
 

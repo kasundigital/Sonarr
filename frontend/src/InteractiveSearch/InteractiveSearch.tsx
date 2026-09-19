@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Alert from 'Components/Alert';
+import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FilterMenu from 'Components/Menu/FilterMenu';
 import PageMenuButton from 'Components/Menu/PageMenuButton';
@@ -25,6 +26,8 @@ interface InteractiveSearchProps {
 
 function InteractiveSearch({ type, searchPayload }: InteractiveSearchProps) {
   const customFilters = useCustomFiltersList('releases');
+  const [quickFilter, setQuickFilter] = useState('');
+  const [visibleCount, setVisibleCount] = useState(250);
   const { columns } = useReleaseOptions();
 
   const {
@@ -56,12 +59,37 @@ function InteractiveSearch({ type, searchPayload }: InteractiveSearchProps) {
     []
   );
 
+  const filteredData = useMemo(() => {
+    const value = quickFilter.trim().toLowerCase();
+
+    if (!value) {
+      return data;
+    }
+
+    return data.filter((item) => item.release.title.toLowerCase().includes(value));
+  }, [data, quickFilter]);
+
+  useEffect(() => {
+    setVisibleCount(250);
+  }, [quickFilter, data]);
+
+  const visibleData = filteredData.slice(0, visibleCount);
   const errorMessage = getErrorMessage(error);
 
   return (
     <div>
-      <div className={styles.filterMenuContainer}>
-        <FilterMenu
+      <div className={styles.searchTools}>
+        <input
+          className={styles.quickFilter}
+          type="search"
+          value={quickFilter}
+          placeholder={translate('Search')}
+          aria-label={translate('Search')}
+          onChange={(event) => setQuickFilter(event.currentTarget.value)}
+        />
+
+        <div className={styles.filterMenuContainer}>
+          <FilterMenu
           alignMenu={align.RIGHT}
           selectedFilterKey={selectedFilterKey}
           filters={FILTERS}
@@ -70,7 +98,8 @@ function InteractiveSearch({ type, searchPayload }: InteractiveSearchProps) {
           filterModalConnectorComponent={InteractiveSearchFilterModal}
           filterModalConnectorComponentProps={{ type, searchPayload }}
           onFilterSelect={handleFilterSelect}
-        />
+          />
+        </div>
       </div>
 
       {isFetching ? <LoadingIndicator /> : null}
@@ -100,7 +129,7 @@ function InteractiveSearch({ type, searchPayload }: InteractiveSearchProps) {
         </Alert>
       ) : null}
 
-      {!isFetching && !!data.length ? (
+      {!isFetching && !!filteredData.length ? (
         <Table
           columns={columns}
           sortKey={sortKey}
@@ -108,7 +137,7 @@ function InteractiveSearch({ type, searchPayload }: InteractiveSearchProps) {
           onSortPress={handleSortPress}
         >
           <TableBody>
-            {data.map((item) => {
+            {visibleData.map((item) => {
               return (
                 <InteractiveSearchRow
                   key={`${item.release.indexerId}-${item.release.guid}`}
@@ -119,6 +148,14 @@ function InteractiveSearch({ type, searchPayload }: InteractiveSearchProps) {
             })}
           </TableBody>
         </Table>
+      ) : null}
+
+      {!isFetching && visibleData.length < filteredData.length ? (
+        <div className={styles.loadMore}>
+          <Button onPress={() => setVisibleCount((count) => count + 250)}>
+            {translate('LoadMore')} ({filteredData.length - visibleData.length})
+          </Button>
+        </div>
       ) : null}
 
       {!isFetching && totalItems !== data.length && !!data.length ? (
