@@ -237,7 +237,7 @@ namespace NzbDrone.Core.Messaging.Commands
             _logger.Trace("Cleaning up old commands");
 
             var commands = _commandQueue.All()
-                                        .Where(c => c.EndedAt < DateTime.UtcNow.AddMinutes(-5))
+                                        .Where(c => c.EndedAt < DateTime.UtcNow.AddMinutes(-30))
                                         .ToList();
 
             _commandQueue.RemoveMany(commands);
