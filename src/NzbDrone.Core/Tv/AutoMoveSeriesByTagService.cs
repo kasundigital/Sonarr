@@ -17,6 +17,7 @@ namespace NzbDrone.Core.Tv
     public class AutoMoveSeriesByTagService :
         IHandle<SeriesAddedEvent>,
         IHandle<SeriesEditedEvent>,
+        IHandle<SeriesUpdatedEvent>,
         IHandle<SeriesBulkEditedEvent>
     {
         private const string TagPrefix = "rootfolder:";
@@ -49,6 +50,11 @@ namespace NzbDrone.Core.Tv
         }
 
         public void Handle(SeriesEditedEvent message)
+        {
+            ApplyRule(message.Series);
+        }
+
+        public void Handle(SeriesUpdatedEvent message)
         {
             ApplyRule(message.Series);
         }
