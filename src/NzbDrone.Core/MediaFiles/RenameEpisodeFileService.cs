@@ -136,7 +136,7 @@ namespace NzbDrone.Core.MediaFiles
             {
                 var episodes = _episodeService.GetEpisodesByFileId(f.Id);
 
-                if (episodes.Empty())
+                if (episodes == null || episodes.Empty())
                 {
                     return previousPaths[f.Id];
                 }
