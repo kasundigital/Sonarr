@@ -49,7 +49,10 @@ namespace NzbDrone.Core.Test.Messaging.Commands
 
             Subject.Start(command);
             Subject.Complete(command, "All done");
-            command.EndedAt = DateTime.UtcNow.AddMinutes(-29);\n            Subject.CleanCommands();\n\n            Subject.Get(command.Id).Should().NotBeNull();
+            command.EndedAt = DateTime.UtcNow.AddMinutes(-29);
+            Subject.CleanCommands();
+
+            Subject.Get(command.Id).Should().NotBeNull();
 
             Mocker.GetMock<ICommandRepository>()
                   .Verify(v => v.Get(It.IsAny<int>()), Times.Never());
