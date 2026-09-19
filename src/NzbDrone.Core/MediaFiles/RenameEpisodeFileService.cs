@@ -154,8 +154,12 @@ namespace NzbDrone.Core.MediaFiles
                 var destinationIsAnotherSource = previousPaths.Any(p =>
                     p.Key != episodeFile.Id &&
                     p.Value.PathEquals(destinationPath, StringComparison.Ordinal));
+                var sourceIsAnotherDestination = destinationPaths.Any(p =>
+                    p.Key != episodeFile.Id &&
+                    p.Value.PathEquals(sourcePath, StringComparison.Ordinal));
 
-                if (!destinationIsAnotherSource || sourcePath.PathEquals(destinationPath, StringComparison.Ordinal))
+                if ((!destinationIsAnotherSource && !sourceIsAnotherDestination) ||
+                    sourcePath.PathEquals(destinationPath, StringComparison.Ordinal))
                 {
                     continue;
                 }
