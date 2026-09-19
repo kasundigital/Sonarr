@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
@@ -15,6 +16,8 @@ namespace NzbDrone.Core.ThingiProvider.Status
         void RecordSuccess(int providerId);
         void RecordFailure(int providerId, TimeSpan minimumBackOff = default(TimeSpan));
         void RecordConnectionFailure(int providerId);
+        void RecordFailure(int providerId, ProviderFailureReason reason, TimeSpan minimumBackOff = default(TimeSpan));
+        ProviderFailureReason GetFailureReason(int providerId);
     }
 
     public abstract class ProviderStatusServiceBase<TProvider, TModel> : IProviderStatusServiceBase<TModel>, IHandleAsync<ProviderDeletedEvent<TProvider>>
@@ -27,6 +30,7 @@ namespace NzbDrone.Core.ThingiProvider.Status
         protected readonly IEventAggregator _eventAggregator;
         protected readonly IRuntimeInfo _runtimeInfo;
         protected readonly Logger _logger;
+        private readonly ConcurrentDictionary<int, ProviderFailureReason> _failureReasons = new ConcurrentDictionary<int, ProviderFailureReason>();
 
         protected int MaximumEscalationLevel { get; set; } = EscalationBackOff.Periods.Length - 1;
         protected TimeSpan MinimumTimeSinceInitialFailure { get; set; } = TimeSpan.Zero;
@@ -43,6 +47,11 @@ namespace NzbDrone.Core.ThingiProvider.Status
         public virtual List<TModel> GetBlockedProviders()
         {
             return _providerStatusRepository.All().Where(v => v.IsDisabled()).ToList();
+        }
+
+        public ProviderFailureReason GetFailureReason(int providerId)
+        {
+            return _failureReasons.TryGetValue(providerId, out var reason) ? reason : ProviderFailureReason.Unknown;
         }
 
         protected virtual TModel GetProviderStatus(int providerId)
@@ -75,6 +84,7 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
                 status.EscalationLevel--;
                 status.DisabledTill = null;
+                _failureReasons.TryRemove(providerId, out _);
 
                 _providerStatusRepository.Upsert(status);
 
@@ -82,7 +92,7 @@ namespace NzbDrone.Core.ThingiProvider.Status
             }
         }
 
-        protected virtual void RecordFailure(int providerId, TimeSpan minimumBackOff, bool escalate)
+        protected virtual void RecordFailure(int providerId, TimeSpan minimumBackOff, bool escalate, ProviderFailureReason reason)
         {
             if (providerId <= 0)
             {
@@ -95,6 +105,7 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
                 var now = DateTime.UtcNow;
                 status.MostRecentFailure = now;
+                _failureReasons[providerId] = reason;
 
                 if (status.EscalationLevel == 0)
                 {
@@ -141,12 +152,18 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
         public virtual void RecordFailure(int providerId, TimeSpan minimumBackOff = default(TimeSpan))
         {
-            RecordFailure(providerId, minimumBackOff, true);
+            var reason = minimumBackOff != TimeSpan.Zero ? ProviderFailureReason.RateLimit : ProviderFailureReason.Failure;
+            RecordFailure(providerId, minimumBackOff, true, reason);
+        }
+
+        public virtual void RecordFailure(int providerId, ProviderFailureReason reason, TimeSpan minimumBackOff = default(TimeSpan))
+        {
+            RecordFailure(providerId, minimumBackOff, true, reason);
         }
 
         public virtual void RecordConnectionFailure(int providerId)
         {
-            RecordFailure(providerId, default(TimeSpan), false);
+            RecordFailure(providerId, default(TimeSpan), false, ProviderFailureReason.Connection);
         }
 
         public virtual void HandleAsync(ProviderDeletedEvent<TProvider> message)
