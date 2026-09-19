@@ -1,3 +1,21 @@
+.searchTools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.quickFilter {
+  min-width: 220px;
+  flex: 1 1 320px;
+  max-width: 520px;
+  padding: 8px 10px;
+  border: 1px solid var(--inputBorderColor);
+  border-radius: 4px;
+  background-color: var(--inputBackgroundColor);
+  color: var(--inputColor);
+}
+
 .filterMenuContainer {
   display: flex;
   justify-content: flex-end;
@@ -6,4 +24,10 @@
 
 .filteredMessage {
   margin-top: 10px;
+}
+
+.loadMore {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
 }
