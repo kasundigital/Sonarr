@@ -86,6 +86,7 @@ namespace NzbDrone.Core.HealthCheck
         IndexerStatusUnavailable,
         MinimumApiKeyLength,
         MountSeries,
+        MediaLibraryNaming,
         NotificationStatusAll,
         NotificationStatusSingle,
         OidcAuthorityNotSecure,
