@@ -11,6 +11,7 @@ using NzbDrone.Common.Processes;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Localization;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Parser;
@@ -86,6 +87,38 @@ namespace NzbDrone.Core.Notifications.CustomScript
             environmentVariables.Add("Sonarr_Release_CustomFormat", string.Join("|", remoteEpisode.CustomFormats));
             environmentVariables.Add("Sonarr_Release_CustomFormatScore", remoteEpisode.CustomFormatScore.ToString());
             environmentVariables.Add("Sonarr_Release_ReleaseType", remoteEpisode.ParsedEpisodeInfo.ReleaseType.ToString());
+
+            ExecuteScript(environmentVariables);
+        }
+
+        public override void OnDownloadFailure(DownloadFailureMessage message)
+        {
+            var environmentVariables = new StringDictionary();
+
+            AddInstanceVariables(environmentVariables, "DownloadFailure");
+
+            if (message.Series != null)
+            {
+                AddSeriesVariables(environmentVariables, message.Series);
+            }
+
+            environmentVariables.Add("Sonarr_Download_Id", message.DownloadId ?? string.Empty);
+            environmentVariables.Add("Sonarr_Download_Client", message.DownloadClient ?? string.Empty);
+            environmentVariables.Add("Sonarr_Download_Failure_Message", message.FailureMessage ?? string.Empty);
+            environmentVariables.Add("Sonarr_Download_Failure_Source", message.FailureSource ?? string.Empty);
+            environmentVariables.Add("Sonarr_Release_Title", message.SourceTitle ?? string.Empty);
+            environmentVariables.Add("Sonarr_EpisodeIds", message.EpisodeIds == null ? string.Empty : string.Join(",", message.EpisodeIds));
+            environmentVariables.Add("Sonarr_Release_Quality", message.Quality?.Quality?.Name ?? string.Empty);
+            environmentVariables.Add("Sonarr_Release_QualityVersion", message.Quality?.Revision.Version.ToString() ?? string.Empty);
+            environmentVariables.Add("Sonarr_Release_Languages", message.Languages == null ? string.Empty : string.Join("|", message.Languages.Select(language => IsoLanguages.Get(language).ThreeLetterCode)));
+
+            if (message.Data != null)
+            {
+                foreach (var item in message.Data)
+                {
+                    environmentVariables["Sonarr_Download_Failure_Data_" + item.Key] = item.Value ?? string.Empty;
+                }
+            }
 
             ExecuteScript(environmentVariables);
         }

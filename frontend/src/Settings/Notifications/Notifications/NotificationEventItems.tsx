@@ -22,6 +22,7 @@ function NotificationEventItems({
   const {
     onGrab,
     onDownload,
+    onDownloadFailure,
     onUpgrade,
     onImportComplete,
     onRename,
@@ -35,6 +36,7 @@ function NotificationEventItems({
     onManualInteractionRequired,
     supportsOnGrab,
     supportsOnDownload,
+    supportsOnDownloadFailure,
     supportsOnUpgrade,
     supportsOnImportComplete,
     supportsOnRename,
@@ -76,6 +78,17 @@ function NotificationEventItems({
               helpText={translate('OnFileImport')}
               isDisabled={!supportsOnDownload.value}
               {...onDownload}
+              onChange={onInputChange}
+            />
+          </div>
+
+          <div>
+            <FormInputGroup
+              type={inputTypes.CHECK}
+              name="onDownloadFailure"
+              helpText={translate('OnDownloadFailure')}
+              isDisabled={!supportsOnDownloadFailure.value}
+              {...onDownloadFailure}
               onChange={onInputChange}
             />
           </div>

@@ -11,6 +11,7 @@ namespace NzbDrone.Core.Notifications
 
         void OnGrab(GrabMessage grabMessage);
         void OnDownload(DownloadMessage message);
+        void OnDownloadFailure(DownloadFailureMessage message);
         void OnRename(Series series, List<RenamedEpisodeFile> renamedFiles);
         void OnImportComplete(ImportCompleteMessage message);
         void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage);
@@ -23,6 +24,7 @@ namespace NzbDrone.Core.Notifications
         void ProcessQueue();
         bool SupportsOnGrab { get; }
         bool SupportsOnDownload { get; }
+        bool SupportsOnDownloadFailure { get; }
         bool SupportsOnUpgrade { get; }
         bool SupportsOnImportComplete { get; }
         bool SupportsOnRename { get; }

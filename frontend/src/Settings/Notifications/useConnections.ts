@@ -16,6 +16,7 @@ export interface NotificationModel extends Provider {
   enable: boolean;
   onGrab: boolean;
   onDownload: boolean;
+  onDownloadFailure: boolean;
   onUpgrade: boolean;
   onImportComplete: boolean;
   onRename: boolean;
@@ -30,6 +31,7 @@ export interface NotificationModel extends Provider {
   onManualInteractionRequired: boolean;
   supportsOnGrab: boolean;
   supportsOnDownload: boolean;
+  supportsOnDownloadFailure: boolean;
   supportsOnUpgrade: boolean;
   supportsOnImportComplete: boolean;
   supportsOnRename: boolean;
@@ -100,6 +102,7 @@ export const useManageConnection = (
           name: schema.implementationName || '',
           onGrab: schema.supportsOnGrab || false,
           onDownload: schema.supportsOnDownload || false,
+          onDownloadFailure: schema.supportsOnDownloadFailure || false,
           onUpgrade: schema.supportsOnUpgrade || false,
           onImportComplete: schema.supportsOnImportComplete || false,
           onRename: schema.supportsOnRename || false,

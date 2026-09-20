@@ -81,7 +81,7 @@ namespace NzbDrone.Core.Extras.Subtitles
             foreach (var episodeFile in episodeFiles)
             {
                 var groupedExtraFilesForEpisodeFile = subtitleFiles.Where(m => m.EpisodeFileId == episodeFile.Id)
-                                                            .GroupBy(s => s.AggregateString).ToList();
+                                                            .GroupBy(s => GetRenameSuffix(s, false) + s.Extension, StringComparer.OrdinalIgnoreCase).ToList();
 
                 foreach (var group in groupedExtraFilesForEpisodeFile)
                 {
@@ -97,12 +97,13 @@ namespace NzbDrone.Core.Extras.Subtitles
                         }
 
                         var title = GetRenameTitle(subtitleFile.Title);
-                        var suffix = GetSuffix(subtitleFile.Language, subtitleFile.Copy, subtitleFile.LanguageTags, multipleCopies, title);
 
                         if (title == null && subtitleFile.Title != null)
                         {
                             subtitleFile.Title = null;
                         }
+
+                        var suffix = GetRenameSuffix(subtitleFile, multipleCopies);
 
                         movedFiles.AddIfNotNull(MoveFile(series, episodeFile, subtitleFile, suffix));
                     }
@@ -264,6 +265,60 @@ namespace NzbDrone.Core.Extras.Subtitles
             }
 
             return title;
+        }
+
+        private string GetRenameSuffix(SubtitleFile subtitleFile, bool multipleCopies)
+        {
+            var title = GetRenameTitle(subtitleFile.Title);
+            var languageSuffix = GetExistingLanguageSuffix(subtitleFile);
+
+            if (languageSuffix is null)
+            {
+                return GetSuffix(subtitleFile.Language, subtitleFile.Copy, subtitleFile.LanguageTags, multipleCopies, title);
+            }
+
+            var suffixBuilder = new StringBuilder();
+
+            if (title is not null)
+            {
+                suffixBuilder.Append('.');
+                suffixBuilder.Append(title);
+
+                if (multipleCopies)
+                {
+                    suffixBuilder.Append(" - ");
+                    suffixBuilder.Append(subtitleFile.Copy);
+                }
+            }
+            else if (multipleCopies)
+            {
+                suffixBuilder.Append('.');
+                suffixBuilder.Append(subtitleFile.Copy);
+            }
+
+            suffixBuilder.Append(languageSuffix);
+            return suffixBuilder.ToString();
+        }
+
+        private string GetExistingLanguageSuffix(SubtitleFile subtitleFile)
+        {
+            var fileName = Path.GetFileNameWithoutExtension(subtitleFile.RelativePath);
+            var match = SubtitleSuffixRegex.Match(fileName);
+
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var isoCode = match.Groups["iso_code"].Value.ToLowerInvariant();
+            var isoLanguage = IsoLanguages.Find(isoCode);
+
+            if (isoLanguage is null && !AdditionalNorwegianSubtitleCodes.Contains(isoCode))
+            {
+                return null;
+            }
+
+            return match.Groups["suffix"].Value;
         }
 
         private string GetSuffix(Language language, int copy, List<string> languageTags, bool multipleCopies = false, string title = null)
