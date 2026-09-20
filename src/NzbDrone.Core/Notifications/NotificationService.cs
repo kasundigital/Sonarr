@@ -23,6 +23,7 @@ namespace NzbDrone.Core.Notifications
           IHandle<DownloadFailedEvent>,
           IHandle<UntrackedDownloadCompletedEvent>,
           IHandle<SeriesRenamedEvent>,
+          IHandle<SeriesMovedEvent>,
           IHandle<SeriesAddCompletedEvent>,
           IHandle<SeriesDeletedEvent>,
           IHandle<EpisodeFileDeletedEvent>,
@@ -345,13 +346,26 @@ namespace NzbDrone.Core.Notifications
 
         public void Handle(SeriesRenamedEvent message)
         {
+            SendRenameNotifications(message.Series, message.RenamedFiles);
+        }
+
+        public void Handle(SeriesMovedEvent message)
+        {
+            // Folder moves do not necessarily rename any episode files, but connections
+            // configured for On Rename still need to refresh the series at its new path.
+            var series = _seriesService.GetSeries(message.Series.Id);
+            SendRenameNotifications(series, new List<RenamedEpisodeFile>());
+        }
+
+        private void SendRenameNotifications(Series series, List<RenamedEpisodeFile> renamedFiles)
+        {
             foreach (var notification in _notificationFactory.OnRenameEnabled())
             {
                 try
                 {
-                    if (ShouldHandleSeries(notification.Definition, message.Series))
+                    if (ShouldHandleSeries(notification.Definition, series))
                     {
-                        notification.OnRename(message.Series, message.RenamedFiles);
+                        notification.OnRename(series, renamedFiles);
                         _notificationStatusService.RecordSuccess(notification.Definition.Id);
                     }
                 }
