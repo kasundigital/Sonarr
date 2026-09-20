@@ -412,6 +412,14 @@ namespace NzbDrone.Core.Indexers.Newznab
                     searchCriteria,
                     $"&q={searchCriteria.AbsoluteEpisodeNumber:00}");
 
+                if (searchCriteria.AbsoluteEpisodeNumber is > 0 and < 10)
+                {
+                    AddTvIdPageableRequests(pageableRequests,
+                        Settings.AnimeCategories,
+                        searchCriteria,
+                        $"&q={searchCriteria.AbsoluteEpisodeNumber:0}");
+                }
+
                 var includeAnimeStandardFormatSearch = Settings.AnimeStandardFormatSearch &&
                                                        searchCriteria.SeasonNumber > 0 &&
                                                        searchCriteria.EpisodeNumber > 0;
@@ -432,6 +440,14 @@ namespace NzbDrone.Core.Indexers.Newznab
                         Settings.AnimeCategories,
                         "search",
                         $"&q={NewsnabifyTitle(queryTitle)}+{searchCriteria.AbsoluteEpisodeNumber:00}"));
+
+                    if (searchCriteria.AbsoluteEpisodeNumber is > 0 and < 10)
+                    {
+                        pageableRequests.Add(GetPagedRequests(MaxPages,
+                            Settings.AnimeCategories,
+                            "search",
+                            $"&q={NewsnabifyTitle(queryTitle)}+{searchCriteria.AbsoluteEpisodeNumber:0}"));
+                    }
 
                     if (includeAnimeStandardFormatSearch && SupportsEpisodeSearch)
                     {
