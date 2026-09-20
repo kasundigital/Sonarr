@@ -226,6 +226,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("CopyUsingHardlinks", value); }
         }
 
+        public bool HardlinkOnly
+        {
+            get { return GetValueBoolean("HardlinkOnly", false); }
+
+            set { SetValue("HardlinkOnly", value); }
+        }
+
         public bool EnableMediaInfo
         {
             get { return GetValueBoolean("EnableMediaInfo", true); }

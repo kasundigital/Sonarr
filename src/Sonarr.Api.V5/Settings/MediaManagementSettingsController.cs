@@ -39,6 +39,10 @@ public class MediaManagementSettingsController : SettingsController<MediaManagem
         SharedValidator.RuleFor(c => c.ScriptImportPath).IsValidPath().When(c => c.UseScriptImport);
 
         SharedValidator.RuleFor(c => c.MinimumFreeSpaceWhenImporting).GreaterThanOrEqualTo(100);
+        SharedValidator.RuleFor(c => c.HardlinkOnly)
+                       .Equal(false)
+                       .When(c => !c.CopyUsingHardlinks)
+                       .WithMessage("Hard Link Only requires 'Use Hardlinks instead of Copy' to be enabled.");
 
         SharedValidator.RuleFor(c => c.UserRejectedExtensions).Custom((extensions, context) =>
         {
