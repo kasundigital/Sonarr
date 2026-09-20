@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
@@ -25,6 +26,7 @@ namespace NzbDrone.Core.SeriesStats
         public string ReleaseGroupsString { get; set; }
         public string ReleaseTypesString { get; set; }
         public string EpisodeFileQualitiesString { get; set; }
+        public string VideoHdrFormatsString { get; set; }
 
         public DateTime? NextAiring
         {
@@ -148,6 +150,25 @@ namespace NzbDrone.Core.SeriesStats
                     .Select(int.Parse)
                     .Distinct()
                     .Select(Quality.FindById)
+                    .ToList();
+            }
+        }
+
+        public List<HdrFormat> VideoHdrFormats
+        {
+            get
+            {
+                if (VideoHdrFormatsString.IsNullOrWhiteSpace())
+                {
+                    return [];
+                }
+
+                return VideoHdrFormatsString
+                    .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(int.Parse)
+                    .Distinct()
+                    .Where(value => Enum.IsDefined(typeof(HdrFormat), value))
+                    .Select(value => (HdrFormat)value)
                     .ToList();
             }
         }

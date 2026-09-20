@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
@@ -20,6 +21,7 @@ namespace NzbDrone.Core.SeriesStats
         public List<string> ReleaseGroups { get; set; }
         public List<ReleaseType> ReleaseTypes { get; set; }
         public List<Quality> EpisodeFileQualities { get; set; }
+        public List<HdrFormat> VideoHdrFormats { get; set; }
         public List<SeasonStatistics> SeasonStatistics { get; set; }
     }
 }

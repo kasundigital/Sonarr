@@ -38,6 +38,7 @@ export interface Statistics {
   releaseGroups: string[];
   releaseTypes: ReleaseType[];
   episodeFileQualities: Quality[];
+  videoHdrFormats: string[];
   sizeOnDisk: number;
   totalEpisodeCount: number;
   monitoredEpisodeCount: number;

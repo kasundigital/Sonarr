@@ -71,7 +71,8 @@ namespace NzbDrone.Core.SeriesStats
                 SizeOnDisk = seasonStatistics.Sum(s => s.SizeOnDisk),
                 ReleaseGroups = seasonStatistics.SelectMany(s => s.ReleaseGroups).Distinct().ToList(),
                 ReleaseTypes = seasonStatistics.SelectMany(s => s.ReleaseTypes).Distinct().OrderBy(s => s).ToList(),
-                EpisodeFileQualities = SortQualities(seasonStatistics.SelectMany(s => s.EpisodeFileQualities).Distinct().ToList(), profile)
+                EpisodeFileQualities = SortQualities(seasonStatistics.SelectMany(s => s.EpisodeFileQualities).Distinct().ToList(), profile),
+                VideoHdrFormats = seasonStatistics.SelectMany(s => s.VideoHdrFormats).Distinct().OrderBy(s => s).ToList()
             };
 
             var nextAiring = seasonStatistics.Where(s => s.NextAiring != null).MinBy(s => s.NextAiring);

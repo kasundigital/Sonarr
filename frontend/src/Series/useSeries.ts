@@ -266,6 +266,16 @@ const FILTER_PREDICATES = {
     return predicate(episodeFileQualities, filterValue);
   },
 
+  videoHdrFormats: (
+    item: Series,
+    filterValue: string[],
+    type: FilterType
+  ) => {
+    const videoHdrFormats = item.statistics?.videoHdrFormats ?? [];
+    const predicate = getFilterTypePredicate(type);
+    return predicate(videoHdrFormats, filterValue);
+  },
+
   seasonCount: (item: Series, filterValue: number, type: FilterType) => {
     const predicate = getFilterTypePredicate(type);
     const seasonCount = item.statistics?.seasonCount ?? 0;
@@ -544,6 +554,47 @@ export const FILTER_BUILDER: FilterBuilderProp<Series>[] = [
     label: () => translate('EpisodeFileQualities'),
     type: filterBuilderTypes.ARRAY,
     valueType: filterBuilderValueTypes.QUALITY,
+  },
+  {
+    name: 'videoHdrFormats',
+    label: () => translate('VideoDynamicRange'),
+    type: filterBuilderTypes.ARRAY,
+    optionsSelector: function (items: ReadonlyArray<Series>) {
+      const displayNames: Record<string, string> = {
+        none: 'SDR',
+        unknownHdr: 'HDR (Unknown)',
+        pq10: 'PQ10',
+        hdr10: 'HDR10',
+        hdr10Plus: 'HDR10+',
+        hlg10: 'HLG10',
+        dolbyVision: 'Dolby Vision',
+        dolbyVisionHdr10: 'Dolby Vision + HDR10',
+        dolbyVisionSdr: 'Dolby Vision + SDR',
+        dolbyVisionHlg: 'Dolby Vision + HLG',
+        dolbyVisionHdr10Plus: 'Dolby Vision + HDR10+',
+      };
+
+      const formats = items.reduce<FilterBuilderTag<string, string>[]>(
+        (acc, series) => {
+          (series.statistics?.videoHdrFormats ?? []).forEach((format) => {
+            acc.push({
+              id: format,
+              name: displayNames[format] ?? format,
+            });
+          });
+
+          return acc;
+        },
+        []
+      );
+
+      return formats
+        .filter(
+          (format, index, values) =>
+            values.findIndex((value) => value.id === format.id) === index
+        )
+        .sort(sortByProp('name'));
+    },
   },
   {
     name: 'ratings',
