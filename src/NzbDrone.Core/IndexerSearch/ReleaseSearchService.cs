@@ -348,6 +348,27 @@ namespace NzbDrone.Core.IndexerSearch
                 downloadDecisions.AddRange(decisions);
             }
 
+            // Some documentaries and irregular releases are indexed by episode title rather than
+            // season/episode number. Specials already use title searches; add the same fallback for
+            // regular single episodes while keeping the numbered search above as the primary path.
+            if (episode.SeasonNumber != 0 && episode.Title.IsNotNullOrWhiteSpace())
+            {
+                var titleSearchSpec = Get<SpecialEpisodeSearchCriteria>(
+                    series,
+                    new List<Episode> { episode },
+                    monitoredOnly,
+                    userInvokedSearch,
+                    interactiveSearch);
+
+                titleSearchSpec.EpisodeQueryTitles = titleSearchSpec.CleanSceneTitles
+                    .Select(title => title + " " + SearchCriteriaBase.GetCleanSceneTitle(episode.Title))
+                    .Distinct(StringComparer.InvariantCultureIgnoreCase)
+                    .ToArray();
+
+                var titleDecisions = await Dispatch(indexer => indexer.Fetch(titleSearchSpec), titleSearchSpec);
+                downloadDecisions.AddRange(titleDecisions);
+            }
+
             return DeDupeDecisions(downloadDecisions);
         }
 
