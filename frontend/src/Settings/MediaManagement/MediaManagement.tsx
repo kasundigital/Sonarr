@@ -355,6 +355,24 @@ function MediaManagement() {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
+                  <FormLabel>{translate('HardlinkOnly')}</FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.CHECK}
+                    name="hardlinkOnly"
+                    helpText={translate('HardlinkOnlyHelpText')}
+                    helpTextWarning={translate('HardlinkOnlyHelpTextWarning')}
+                    isDisabled={!settings.copyUsingHardlinks.value}
+                    onChange={handleInputChange}
+                    {...settings.hardlinkOnly}
+                  />
+                </FormGroup>
+
+                <FormGroup
+                  advancedSettings={showAdvancedSettings}
+                  isAdvanced={true}
+                  size={sizes.MEDIUM}
+                >
                   <FormLabel>{translate('ImportUsingScript')}</FormLabel>
 
                   <FormInputGroup
