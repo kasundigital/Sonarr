@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useBlocker } from 'react-router';
 import ModelBase from 'App/ModelBase';
 import useApiMutation, {
   addOrUpdateQueryClientItem,
@@ -242,6 +243,31 @@ export const useManageProviderSettings = <T extends ModelBase>(
 
   const hasChangedValues = Object.keys(changedValues).length > 0;
   const hasChangedFields = changedFields.size > 0;
+  const hasPendingChanges = hasChangedValues || hasChangedFields;
+
+  useBlocker(() => {
+    if (!hasPendingChanges) {
+      return false;
+    }
+
+    return !window.confirm('You have unsaved changes. Discard them and leave this page?');
+  });
+
+  useEffect(() => {
+    if (!hasPendingChanges) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasPendingChanges]);
 
   const { settings: item, ...settings } = useMemo(() => {
     // Create a combined pending changes object that includes fields
