@@ -58,10 +58,10 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [TestCase("Rule #23: Never Lie to the Kids", "Rule #23 Never Lie to the Kids")]
         [TestCase("Anne Hathaway/Florence + The Machine", "Anne Hathaway Florence + The Machine")]
         [TestCase("Chris Rock/Prince", "Chris Rock Prince")]
-        [TestCase("Karma's a B*tch!", "Karmas a B-tch!")]
+        [TestCase("Karma's a B*tch!", "Karmas a B-tch")]
         [TestCase("Ke$ha: My Crazy Beautiful Life", "Ke$ha My Crazy Beautiful Life")]
         [TestCase("$#*! My Dad Says", "$#-! My Dad Says")]
-        [TestCase("Free! - Iwatobi Swim Club", "Free! Iwatobi Swim Club")]
+        [TestCase("Free! - Iwatobi Swim Club", "Free Iwatobi Swim Club")]
         [TestCase("Tamara Ecclestone: Billion $$ Girl", "Tamara Ecclestone Billion $$ Girl")]
         [TestCase("Marvel's Agents of S.H.I.E.L.D.", "Marvels Agents of S.H.I.E.L.D")]
         [TestCase("Castle (2009)", "Castle 2009")]
@@ -81,6 +81,8 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [TestCase("Don’t Blink", "Dont Blink")]
         [TestCase("The ` Legend of Kings", "The Legend of Kings")]
         [TestCase("Joker: Folie à deux", "Joker Folie a deux")]
+        [TestCase("Reno 911!", "Reno 911")]
+        [TestCase("Check It Out! With Dr. Steve Brule", "Check It Out With Dr. Steve Brule")]
         public void should_get_expected_title_back(string title, string expected)
         {
             _series.Title = title;
