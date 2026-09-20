@@ -780,6 +780,24 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         }
 
         [Test]
+        public async Task episode_search_should_search_regular_episode_by_title_as_fallback()
+        {
+            WithEpisode(1, 12, null, null);
+            _xemEpisodes[0].Title = "The Lost Documentary";
+
+            var allCriteria = WatchForSearchCriteria();
+
+            await Subject.EpisodeSearch(_xemEpisodes.First(), true, false);
+
+            allCriteria.OfType<SingleEpisodeSearchCriteria>().Should().ContainSingle();
+
+            var titleCriteria = allCriteria.OfType<SpecialEpisodeSearchCriteria>().ToList();
+            titleCriteria.Should().ContainSingle();
+            titleCriteria[0].EpisodeQueryTitles.Should().ContainSingle();
+            titleCriteria[0].EpisodeQueryTitles[0].Should().Contain("The Lost Documentary");
+        }
+
+        [Test]
         public async Task episode_search_should_include_series_title_when_not_a_direct_title_match()
         {
             _xemSeries.Title = "Sonarr's Title";
