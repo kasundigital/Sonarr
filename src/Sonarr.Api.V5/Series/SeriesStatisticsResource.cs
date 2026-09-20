@@ -1,3 +1,4 @@
+using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.SeriesStats;
@@ -15,6 +16,7 @@ public class SeriesStatisticsResource
     public List<string>? ReleaseGroups { get; set; }
     public List<ReleaseType>? ReleaseTypes { get; set; }
     public List<Quality>? EpisodeFileQualities { get; set; }
+    public List<HdrFormat>? VideoHdrFormats { get; set; }
 
     public decimal PercentOfEpisodes
     {
@@ -44,7 +46,8 @@ public static class SeriesStatisticsResourceMapper
             SizeOnDisk = model.SizeOnDisk,
             ReleaseGroups = model.ReleaseGroups,
             ReleaseTypes = model.ReleaseTypes,
-            EpisodeFileQualities = model.EpisodeFileQualities
+            EpisodeFileQualities = model.EpisodeFileQualities,
+            VideoHdrFormats = model.VideoHdrFormats
         };
     }
 }
