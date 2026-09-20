@@ -56,8 +56,9 @@ namespace NzbDrone.Update.UpdateEngine
 
         private void StartService()
         {
-            _logger.Info("Starting Sonarr service");
-            _serviceProvider.Start(ServiceProvider.SERVICE_NAME);
+            var serviceName = _startupContext.ServiceName ?? ServiceProvider.SERVICE_NAME;
+            _logger.Info("Starting Sonarr service '{0}'", serviceName);
+            _serviceProvider.Start(serviceName);
         }
 
         private void StartWinform(string installationFolder)

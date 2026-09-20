@@ -26,6 +26,7 @@ namespace NzbDrone.Common.EnvironmentInfo
         public const string REGISTER_URL = "registerurl";
         public const string NO_SINGLE_INSTANCE_CHECK = "nosingleinstancecheck";
         public const string EXIT_IMMEDIATELY = "exitimmediately";
+        public const string SERVICE_NAME = "servicename";
 
         public StartupContext(params string[] args)
         {
@@ -57,6 +58,7 @@ namespace NzbDrone.Common.EnvironmentInfo
         public bool UninstallService => Flags.Contains(UNINSTALL_SERVICE);
         public bool RegisterUrl => Flags.Contains(REGISTER_URL);
         public bool ExitImmediately => Flags.Contains(EXIT_IMMEDIATELY);
+        public string ServiceName => Args.TryGetValue(SERVICE_NAME, out var serviceName) ? serviceName : null;
 
         public string PreservedArguments
         {
@@ -72,6 +74,11 @@ namespace NzbDrone.Common.EnvironmentInfo
                 if (Flags.Contains(NO_BROWSER))
                 {
                     args += " /" + NO_BROWSER;
+                }
+
+                if (Args.TryGetValue(SERVICE_NAME, out var serviceName) && !string.IsNullOrWhiteSpace(serviceName))
+                {
+                    args += " /" + SERVICE_NAME + "=\"" + serviceName + "\"";
                 }
 
                 return args.Trim();

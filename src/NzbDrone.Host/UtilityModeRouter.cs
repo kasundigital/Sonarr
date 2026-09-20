@@ -19,6 +19,7 @@ namespace NzbDrone.Host
         private readonly IProcessProvider _processProvider;
         private readonly IRemoteAccessAdapter _remoteAccessAdapter;
         private readonly IAppFolderFactory _appFolderFactory;
+        private readonly IStartupContext _startupContext;
         private readonly Logger _logger;
 
         public UtilityModeRouter(IServiceProvider serviceProvider,
@@ -26,6 +27,7 @@ namespace NzbDrone.Host
                       IProcessProvider processProvider,
                       IRemoteAccessAdapter remoteAccessAdapter,
                       IAppFolderFactory appFolderFactory,
+                      IStartupContext startupContext,
                       Logger logger)
         {
             _serviceProvider = serviceProvider;
@@ -33,6 +35,7 @@ namespace NzbDrone.Host
             _processProvider = processProvider;
             _remoteAccessAdapter = remoteAccessAdapter;
             _appFolderFactory = appFolderFactory;
+            _startupContext = startupContext;
             _logger = logger;
         }
 
@@ -44,20 +47,21 @@ namespace NzbDrone.Host
             {
                 case ApplicationModes.InstallService:
                     {
-                        _logger.Debug("Install Service selected");
-                        if (_serviceProvider.ServiceExist(ServiceProvider.SERVICE_NAME))
+                        var serviceName = _startupContext.ServiceName ?? ServiceProvider.SERVICE_NAME;
+                        _logger.Debug("Install Service selected: {0}", serviceName);
+                        if (_serviceProvider.ServiceExist(serviceName))
                         {
                             _consoleService.PrintServiceAlreadyExist();
                         }
                         else
                         {
                             _remoteAccessAdapter.MakeAccessible(true);
-                            _serviceProvider.Install(ServiceProvider.SERVICE_NAME);
-                            _serviceProvider.SetPermissions(ServiceProvider.SERVICE_NAME);
+                            _serviceProvider.Install(serviceName);
+                            _serviceProvider.SetPermissions(serviceName);
 
                             // Start the service and exit.
                             // Ensures that there isn't an instance of Sonarr already running that the service account cannot stop.
-                            _processProvider.SpawnNewProcess("sc.exe", $"start {ServiceProvider.SERVICE_NAME}", null, true);
+                            _processProvider.SpawnNewProcess("sc.exe", $"start \"{serviceName}\"", null, true);
                         }
 
                         break;
@@ -65,14 +69,15 @@ namespace NzbDrone.Host
 
                 case ApplicationModes.UninstallService:
                     {
-                        _logger.Debug("Uninstall Service selected");
-                        if (!_serviceProvider.ServiceExist(ServiceProvider.SERVICE_NAME))
+                        var serviceName = _startupContext.ServiceName ?? ServiceProvider.SERVICE_NAME;
+                        _logger.Debug("Uninstall Service selected: {0}", serviceName);
+                        if (!_serviceProvider.ServiceExist(serviceName))
                         {
                             _consoleService.PrintServiceDoesNotExist();
                         }
                         else
                         {
-                            _serviceProvider.Uninstall(ServiceProvider.SERVICE_NAME);
+                            _serviceProvider.Uninstall(serviceName);
                         }
 
                         break;
