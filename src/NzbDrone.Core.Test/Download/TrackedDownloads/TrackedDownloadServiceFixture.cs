@@ -89,6 +89,72 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
         }
 
         [Test]
+        public void should_preserve_episode_mapping_from_grabbed_history_when_download_title_maps_to_a_different_episode()
+        {
+            var grabbedHistory = new EpisodeHistory
+            {
+                DownloadId = "35238",
+                SourceTitle = "TV Series S03E11",
+                SeriesId = 5,
+                EpisodeId = 311,
+                EventType = EpisodeHistoryEventType.Grabbed
+            };
+
+            Mocker.GetMock<IHistoryService>()
+                .Setup(s => s.FindByDownloadId("35238"))
+                .Returns([grabbedHistory]);
+
+            var parsedRemoteEpisode = new RemoteEpisode
+            {
+                Series = new Series { Id = 5 },
+                Episodes = [new Episode { Id = 411, SeriesId = 5, SeasonNumber = 4, EpisodeNumber = 11 }],
+                ParsedEpisodeInfo = new ParsedEpisodeInfo
+                {
+                    SeriesTitle = "TV Series",
+                    SeasonNumbers = [4],
+                    EpisodeNumbers = [11]
+                }
+            };
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
+                .Returns(parsedRemoteEpisode);
+
+            Mocker.GetMock<ISeriesService>()
+                .Setup(s => s.GetSeries(5))
+                .Returns(new Series { Id = 5 });
+
+            Mocker.GetMock<IEpisodeService>()
+                .Setup(s => s.GetEpisodes(It.Is<IEnumerable<int>>(ids => ids.SequenceEqual(new[] { 311 }))))
+                .Returns([new Episode { Id = 311, SeriesId = 5, SeasonNumber = 3, EpisodeNumber = 11 }]);
+
+            var client = new DownloadClientDefinition
+            {
+                Id = 1,
+                Protocol = DownloadProtocol.Torrent
+            };
+
+            var item = new DownloadClientItem
+            {
+                Title = "TV.Series.S04E11.1080p.WEB",
+                DownloadId = "35238",
+                DownloadClientInfo = new DownloadClientItemClientInfo
+                {
+                    Protocol = client.Protocol,
+                    Id = client.Id,
+                    Name = client.Name
+                }
+            };
+
+            var trackedDownload = Subject.TrackDownload(client, item);
+
+            trackedDownload.RemoteEpisode.Episodes.Should().ContainSingle();
+            trackedDownload.RemoteEpisode.Episodes.Single().Id.Should().Be(311);
+            trackedDownload.RemoteEpisode.Episodes.Single().SeasonNumber.Should().Be(3);
+            trackedDownload.RemoteEpisode.Episodes.Single().EpisodeNumber.Should().Be(11);
+        }
+
+        [Test]
         public void should_set_indexer()
         {
             var episodeHistory = new EpisodeHistory()
