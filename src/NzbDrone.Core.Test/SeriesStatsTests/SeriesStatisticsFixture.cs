@@ -7,6 +7,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.SeriesStats;
 using NzbDrone.Core.Test.Framework;
@@ -166,6 +167,26 @@ namespace NzbDrone.Core.Test.SeriesStatsTests
 
             stats.Should().HaveCount(1);
             stats.First().SizeOnDisk.Should().Be(_episodeFile.Size);
+        }
+
+        [Test]
+        public void should_include_video_hdr_format_when_episode_file_exists()
+        {
+            GivenEpisodeWithFile();
+            GivenEpisode();
+
+            _episodeFile.MediaInfo = new MediaInfoModel
+            {
+                VideoHdrFormat = HdrFormat.Hdr10
+            };
+
+            GivenEpisodeFile();
+
+            var stats = Subject.SeriesStatistics();
+
+            stats.Should().HaveCount(1);
+            stats.First().VideoHdrFormats.Should().ContainSingle()
+                .Which.Should().Be(HdrFormat.Hdr10);
         }
 
         [Test]
