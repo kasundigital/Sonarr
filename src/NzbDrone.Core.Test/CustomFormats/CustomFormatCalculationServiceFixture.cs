@@ -92,6 +92,54 @@ namespace NzbDrone.Core.Test.CustomFormats
             result.Should().BeEmpty();
         }
 
+        [Test]
+        public void should_union_matches_from_scene_original_and_current_file_names()
+        {
+            var sceneFormat = GivenReleaseTitleCustomFormat("Scene", @"\bSCENEFLAG\b");
+            var originalFormat = GivenReleaseTitleCustomFormat("Original", @"\bORIGINALFLAG\b");
+            var currentFormat = GivenReleaseTitleCustomFormat("Current", @"\bCURRENTFLAG\b");
+
+            var episodeFile = new EpisodeFile
+            {
+                SceneName = "Futurama.S03E01.SCENEFLAG.1080p.WEB-DL",
+                OriginalFilePath = "/downloads/Futurama.S03E01.ORIGINALFLAG.1080p.WEB-DL.mkv",
+                RelativePath = "Season 03/Futurama.S03E01.CURRENTFLAG.1080p.WEB-DL.mkv",
+                Quality = new QualityModel(Quality.WEBDL1080p),
+                Languages = new List<Language> { Language.English },
+                Series = _series,
+                Episodes = new List<Episode> { _episode }
+            };
+
+            GivenCustomFormats(sceneFormat, originalFormat, currentFormat);
+
+            var result = Subject.ParseCustomFormat(episodeFile, _series);
+
+            result.Should().BeEquivalentTo(new[] { sceneFormat, originalFormat, currentFormat });
+        }
+
+        [Test]
+        public void should_not_duplicate_custom_format_matched_by_multiple_file_title_sources()
+        {
+            var customFormat = GivenReleaseTitleCustomFormat("WEB-DL", @"\bWEB[ ._-]?DL\b");
+
+            var episodeFile = new EpisodeFile
+            {
+                SceneName = "Futurama.S03E01.1080p.WEB-DL",
+                OriginalFilePath = "/downloads/Futurama.S03E01.1080p.WEB-DL.mkv",
+                RelativePath = "Season 03/Futurama.S03E01.1080p.WEB-DL.mkv",
+                Quality = new QualityModel(Quality.WEBDL1080p),
+                Languages = new List<Language> { Language.English },
+                Series = _series,
+                Episodes = new List<Episode> { _episode }
+            };
+
+            GivenCustomFormats(customFormat);
+
+            var result = Subject.ParseCustomFormat(episodeFile, _series);
+
+            result.Should().ContainSingle().Which.Should().Be(customFormat);
+        }
+
         private LocalEpisode GivenLocalEpisode()
         {
             return new LocalEpisode
