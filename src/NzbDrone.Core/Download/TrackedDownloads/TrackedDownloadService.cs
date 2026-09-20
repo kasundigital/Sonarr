@@ -37,6 +37,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         private readonly IParsingService _parsingService;
         private readonly IHistoryService _historyService;
         private readonly ISeriesService _seriesService;
+        private readonly IEpisodeService _episodeService;
         private readonly IDownloadHistoryService _downloadHistoryService;
         private readonly IRemoteEpisodeAggregationService _aggregationService;
         private readonly ICustomFormatCalculationService _formatCalculator;
@@ -48,6 +49,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         public TrackedDownloadService(IParsingService parsingService,
                                       IHistoryService historyService,
                                       ISeriesService seriesService,
+                                      IEpisodeService episodeService,
                                       IDownloadHistoryService downloadHistoryService,
                                       IRemoteEpisodeAggregationService aggregationService,
                                       ICustomFormatCalculationService formatCalculator,
@@ -58,6 +60,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             _parsingService = parsingService;
             _historyService = historyService;
             _seriesService = seriesService;
+            _episodeService = episodeService;
             _downloadHistoryService = downloadHistoryService;
             _aggregationService = aggregationService;
             _formatCalculator = formatCalculator;
@@ -174,6 +177,26 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                                 firstHistoryItem.SeriesId,
                                 historyItems.Where(v => v.EventType == EpisodeHistoryEventType.Grabbed)
                                     .Select(h => h.EpisodeId).Distinct());
+                        }
+                    }
+
+                    if (grabbedEvent != null && trackedDownload.RemoteEpisode != null)
+                    {
+                        var grabbedHistoryItems = historyItems
+                            .Where(v => v.EventType == EpisodeHistoryEventType.Grabbed)
+                            .ToList();
+                        var grabbedEpisodeIds = grabbedHistoryItems
+                            .Select(h => h.EpisodeId)
+                            .Distinct()
+                            .ToList();
+
+                        if (grabbedEpisodeIds.Any())
+                        {
+                            // The grabbed history reflects the episode mapping that was actually approved
+                            // at grab time, including explicit Interactive Search overrides. Preserve it
+                            // instead of replacing it with a later re-parse of the download client title.
+                            trackedDownload.RemoteEpisode.Series = _seriesService.GetSeries(grabbedEvent.SeriesId);
+                            trackedDownload.RemoteEpisode.Episodes = _episodeService.GetEpisodes(grabbedEpisodeIds);
                         }
                     }
 
