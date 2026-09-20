@@ -162,6 +162,20 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         }
 
         [Test]
+        public void should_search_padded_and_unpadded_single_digit_absolute_anime_number()
+        {
+            _animeSearchCriteria.AbsoluteEpisodeNumber = 4;
+
+            var results = Subject.GetSearchRequests(_animeSearchCriteria);
+            var pages = results.GetTier(0).Select(t => t.First()).ToList();
+
+            pages.Should().Contain(p => p.Url.FullUri.Contains("rid=10&q=04"));
+            pages.Should().Contain(p => p.Url.FullUri.Contains("rid=10&q=4"));
+            pages.Should().Contain(p => p.Url.FullUri.Contains("q=Monkey%20Island+04"));
+            pages.Should().Contain(p => p.Url.FullUri.Contains("q=Monkey%20Island+4"));
+        }
+
+        [Test]
         public void should_also_use_standard_numbering_for_anime_search()
         {
             Subject.Settings.AnimeStandardFormatSearch = true;
