@@ -42,7 +42,8 @@ namespace NzbDrone.Core.CustomFormats
                 Size = size,
                 Languages = remoteEpisode.Languages,
                 IndexerFlags = remoteEpisode.Release?.IndexerFlags ?? 0,
-                ReleaseType = remoteEpisode.ParsedEpisodeInfo.ReleaseType
+                ReleaseType = remoteEpisode.ParsedEpisodeInfo.ReleaseType,
+                DownloadProtocol = remoteEpisode.Release?.DownloadProtocol
             };
 
             return ParseCustomFormat(input);
