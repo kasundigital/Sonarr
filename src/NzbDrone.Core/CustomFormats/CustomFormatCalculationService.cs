@@ -171,46 +171,73 @@ namespace NzbDrone.Core.CustomFormats
 
         private List<CustomFormat> ParseCustomFormat(EpisodeFile episodeFile, Series series, List<CustomFormat> allCustomFormats)
         {
-            var releaseTitle = string.Empty;
+            var releaseTitles = new List<string>();
 
             if (episodeFile.SceneName.IsNotNullOrWhiteSpace())
             {
-                _logger.Trace("Using scene name for release title: {0}", episodeFile.SceneName);
-                releaseTitle = episodeFile.SceneName;
-            }
-            else if (episodeFile.OriginalFilePath.IsNotNullOrWhiteSpace())
-            {
-                _logger.Trace("Using original file path for release title: {0}", Path.GetFileName(episodeFile.OriginalFilePath));
-                releaseTitle = Path.GetFileName(episodeFile.OriginalFilePath);
-            }
-            else if (episodeFile.RelativePath.IsNotNullOrWhiteSpace())
-            {
-                _logger.Trace("Using relative path for release title: {0}", Path.GetFileName(episodeFile.RelativePath));
-                releaseTitle = Path.GetFileName(episodeFile.RelativePath);
+                _logger.Trace("Using scene name as a custom format release-title source: {0}", episodeFile.SceneName);
+                releaseTitles.Add(episodeFile.SceneName);
             }
 
-            var episodeInfo = new ParsedEpisodeInfo
+            if (episodeFile.OriginalFilePath.IsNotNullOrWhiteSpace())
             {
-                SeriesTitle = series.Title,
-                ReleaseTitle = releaseTitle,
-                Quality = episodeFile.Quality,
-                Languages = episodeFile.Languages,
-                ReleaseGroup = episodeFile.ReleaseGroup,
-            };
+                var originalFileName = Path.GetFileName(episodeFile.OriginalFilePath);
+                _logger.Trace("Using original file path as a custom format release-title source: {0}", originalFileName);
+                releaseTitles.Add(originalFileName);
+            }
 
-            var input = new CustomFormatInput
+            if (episodeFile.RelativePath.IsNotNullOrWhiteSpace())
             {
-                EpisodeInfo = episodeInfo,
-                Series = series,
-                Size = episodeFile.Size,
-                Languages = episodeFile.Languages,
-                IndexerFlags = episodeFile.IndexerFlags,
-                ReleaseType = episodeFile.ReleaseType,
-                Filename = Path.GetFileName(episodeFile.RelativePath),
-                ReleaseTitleExclusions = GetReleaseTitleExclusions(series, episodeFile.Episodes?.Value)
-            };
+                var currentFileName = Path.GetFileName(episodeFile.RelativePath);
+                _logger.Trace("Using current relative path as a custom format release-title source: {0}", currentFileName);
+                releaseTitles.Add(currentFileName);
+            }
 
-            return ParseCustomFormat(input, allCustomFormats);
+            releaseTitles = releaseTitles
+                .Where(title => title.IsNotNullOrWhiteSpace())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (releaseTitles.Empty())
+            {
+                releaseTitles.Add(string.Empty);
+            }
+
+            var releaseTitleExclusions = GetReleaseTitleExclusions(series, episodeFile.Episodes?.Value);
+            var filename = Path.GetFileName(episodeFile.RelativePath);
+            var matches = new List<CustomFormat>();
+
+            foreach (var releaseTitle in releaseTitles)
+            {
+                var episodeInfo = new ParsedEpisodeInfo
+                {
+                    SeriesTitle = series.Title,
+                    ReleaseTitle = releaseTitle,
+                    Quality = episodeFile.Quality,
+                    Languages = episodeFile.Languages,
+                    ReleaseGroup = episodeFile.ReleaseGroup,
+                };
+
+                var input = new CustomFormatInput
+                {
+                    EpisodeInfo = episodeInfo,
+                    Series = series,
+                    Size = episodeFile.Size,
+                    Languages = episodeFile.Languages,
+                    IndexerFlags = episodeFile.IndexerFlags,
+                    ReleaseType = episodeFile.ReleaseType,
+                    Filename = filename,
+                    ReleaseTitleExclusions = releaseTitleExclusions
+                };
+
+                matches.AddRange(ParseCustomFormat(input, allCustomFormats));
+            }
+
+            return matches
+                .GroupBy(x => x.Id > 0 ? $"id:{x.Id}" : $"name:{x.Name}", StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .OrderBy(x => x.Name)
+                .ToList();
         }
 
         private static List<string> GetReleaseTitleExclusions(Series series, IEnumerable<Episode> episodes)
