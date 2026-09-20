@@ -20,6 +20,7 @@ namespace NzbDrone.Core.Notifications
         : IHandle<EpisodeGrabbedEvent>,
           IHandle<EpisodeImportedEvent>,
           IHandle<DownloadCompletedEvent>,
+          IHandle<DownloadFailedEvent>,
           IHandle<UntrackedDownloadCompletedEvent>,
           IHandle<SeriesRenamedEvent>,
           IHandle<SeriesAddCompletedEvent>,
@@ -36,12 +37,14 @@ namespace NzbDrone.Core.Notifications
     {
         private readonly INotificationFactory _notificationFactory;
         private readonly INotificationStatusService _notificationStatusService;
+        private readonly ISeriesService _seriesService;
         private readonly Logger _logger;
 
-        public NotificationService(INotificationFactory notificationFactory, INotificationStatusService notificationStatusService, Logger logger)
+        public NotificationService(INotificationFactory notificationFactory, INotificationStatusService notificationStatusService, ISeriesService seriesService, Logger logger)
         {
             _notificationFactory = notificationFactory;
             _notificationStatusService = notificationStatusService;
+            _seriesService = seriesService;
             _logger = logger;
         }
 
@@ -96,6 +99,11 @@ namespace NzbDrone.Core.Notifications
 
         private bool ShouldHandleSeries(ProviderDefinition definition, Series series)
         {
+            if (series == null)
+            {
+                return definition.Tags.Empty();
+            }
+
             if (definition.Tags.Empty())
             {
                 _logger.Debug("No tags set for this notification.");
@@ -197,6 +205,54 @@ namespace NzbDrone.Core.Notifications
                 {
                     _notificationStatusService.RecordFailure(notification.Definition.Id);
                     _logger.Warn(ex, "Unable to send OnDownload notification to: " + notification.Definition.Name);
+                }
+            }
+        }
+
+        public void Handle(DownloadFailedEvent message)
+        {
+            Series series = null;
+
+            try
+            {
+                series = _seriesService.GetSeries(message.SeriesId);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to resolve series {0} for download failure notification", message.SeriesId);
+            }
+
+            var failureMessage = new DownloadFailureMessage
+            {
+                Series = series,
+                EpisodeIds = message.EpisodeIds,
+                Quality = message.Quality,
+                SourceTitle = message.SourceTitle,
+                DownloadClient = message.DownloadClient,
+                DownloadId = message.DownloadId,
+                FailureMessage = message.Message,
+                FailureSource = message.Source,
+                Data = message.Data,
+                TrackedDownload = message.TrackedDownload,
+                Languages = message.Languages
+            };
+
+            foreach (var notification in _notificationFactory.OnDownloadFailureEnabled())
+            {
+                try
+                {
+                    if (!ShouldHandleSeries(notification.Definition, series))
+                    {
+                        continue;
+                    }
+
+                    notification.OnDownloadFailure(failureMessage);
+                    _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Error(ex, "Unable to send OnDownloadFailure notification to {0}", notification.Definition.Name);
                 }
             }
         }
