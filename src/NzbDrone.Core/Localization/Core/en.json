@@ -1352,6 +1352,7 @@
   "MediaManagementSettings": "Media Management Settings",
   "MediaManagementSettingsLoadError": "Unable to load Media Management settings",
   "MediaManagementSettingsSummary": "Naming, file management settings and root folders",
+  "MediaLibraryNamingHealthCheckMessage": "{count} episode files do not match the configured naming format. Affected series include: {series}. Use Preview Rename to review changes before renaming.",
   "Medium": "Medium",
   "Menu": "Menu",
   "Message": "Message",
