@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
@@ -15,6 +16,7 @@ namespace NzbDrone.Core.CustomFormats
         public string Filename { get; set; }
         public List<string> ReleaseTitleExclusions { get; set; }
         public ReleaseType ReleaseType { get; set; }
+        public DownloadProtocol? DownloadProtocol { get; set; }
 
         public CustomFormatInput()
         {
