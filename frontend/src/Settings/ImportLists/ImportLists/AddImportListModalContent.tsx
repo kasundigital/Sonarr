@@ -26,6 +26,10 @@ function getListGroupTitle(typeOfList: string) {
     return 'TMDb';
   }
 
+  if (typeOfList === 'mdbList') {
+    return 'MDBList';
+  }
+
   return translate('TypeOfList', {
     typeOfList: titleCase(typeOfList),
   });
