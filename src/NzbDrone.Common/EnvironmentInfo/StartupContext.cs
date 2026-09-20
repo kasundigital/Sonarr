@@ -10,6 +10,7 @@ namespace NzbDrone.Common.EnvironmentInfo
         bool InstallService { get; }
         bool UninstallService { get; }
         bool RegisterUrl { get; }
+        string ServiceName { get; }
 
         string PreservedArguments { get; }
     }
