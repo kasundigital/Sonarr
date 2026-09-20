@@ -12,6 +12,7 @@ namespace NzbDrone.Core.Notifications
     {
         protected const string EPISODE_GRABBED_TITLE = "Episode Grabbed";
         protected const string EPISODE_DOWNLOADED_TITLE = "Episode Downloaded";
+        protected const string DOWNLOAD_FAILED_TITLE = "Download Failed";
         protected const string IMPORT_COMPLETE_TITLE = "Import Complete";
         protected const string EPISODE_DELETED_TITLE = "Episode Deleted";
         protected const string SERIES_ADDED_TITLE = "Series Added";
@@ -23,6 +24,7 @@ namespace NzbDrone.Core.Notifications
 
         protected const string EPISODE_GRABBED_TITLE_BRANDED = "Sonarr - " + EPISODE_GRABBED_TITLE;
         protected const string EPISODE_DOWNLOADED_TITLE_BRANDED = "Sonarr - " + EPISODE_DOWNLOADED_TITLE;
+        protected const string DOWNLOAD_FAILED_TITLE_BRANDED = "Sonarr - " + DOWNLOAD_FAILED_TITLE;
         protected const string IMPORT_COMPLETE_TITLE_BRANDED = "Sonarr - " + IMPORT_COMPLETE_TITLE;
         protected const string EPISODE_DELETED_TITLE_BRANDED = "Sonarr - " + EPISODE_DELETED_TITLE;
         protected const string SERIES_ADDED_TITLE_BRANDED = "Sonarr - " + SERIES_ADDED_TITLE;
@@ -50,6 +52,10 @@ namespace NzbDrone.Core.Notifications
         }
 
         public virtual void OnDownload(DownloadMessage message)
+        {
+        }
+
+        public virtual void OnDownloadFailure(DownloadFailureMessage message)
         {
         }
 
@@ -96,6 +102,7 @@ namespace NzbDrone.Core.Notifications
         public bool SupportsOnGrab => HasConcreteImplementation("OnGrab");
         public bool SupportsOnRename => HasConcreteImplementation("OnRename");
         public bool SupportsOnDownload => HasConcreteImplementation("OnDownload");
+        public bool SupportsOnDownloadFailure => HasConcreteImplementation("OnDownloadFailure");
         public bool SupportsOnUpgrade => SupportsOnDownload;
         public bool SupportsOnImportComplete => HasConcreteImplementation("OnImportComplete");
         public bool SupportsOnSeriesAdd => HasConcreteImplementation("OnSeriesAdd");
