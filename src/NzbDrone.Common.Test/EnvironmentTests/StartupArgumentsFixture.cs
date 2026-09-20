@@ -60,5 +60,22 @@ namespace NzbDrone.Common.Test.EnvironmentTests
             var args = new StartupContext(new[] { "/data=test", "/Nobrowser" });
             args.PreservedArguments.Should().Be("/data=test /nobrowser");
         }
+
+        [Test]
+        public void should_parse_and_preserve_service_name()
+        {
+            var args = new StartupContext(new[] { "/servicename=Sonarr_4k" });
+
+            args.ServiceName.Should().Be("Sonarr_4k");
+            args.PreservedArguments.Should().Be("/servicename=\"Sonarr_4k\"");
+        }
+
+        [Test]
+        public void should_preserve_service_name_with_other_arguments()
+        {
+            var args = new StartupContext(new[] { "/data=test", "/servicename=Sonarr_4k", "/nobrowser" });
+
+            args.PreservedArguments.Should().Be("/data=test /nobrowser /servicename=\"Sonarr_4k\"");
+        }
     }
 }
